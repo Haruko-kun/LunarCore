@@ -61,10 +61,12 @@ import emu.lunarcore.proto.HeadIconOuterClass.HeadIcon;
 import emu.lunarcore.proto.PlatformTypeOuterClass.PlatformType;
 import emu.lunarcore.proto.PlayerBasicInfoOuterClass.PlayerBasicInfo;
 import emu.lunarcore.proto.PlayerDetailInfoOuterClass.PlayerDetailInfo;
+import emu.lunarcore.proto.PlayerSyncScNotifyOuterClass.PlayerSyncScNotify;
 import emu.lunarcore.proto.RogueCurVirtualItemInfoOuterClass.RogueCurVirtualItemInfo;
 import emu.lunarcore.proto.SimpleInfoOuterClass.SimpleInfo;
 import emu.lunarcore.server.game.GameServer;
 import emu.lunarcore.server.game.GameSession;
+import emu.lunarcore.server.game.Syncable;
 import emu.lunarcore.server.game.Tickable;
 import emu.lunarcore.server.packet.BasePacket;
 import emu.lunarcore.server.packet.CmdId;
@@ -80,7 +82,7 @@ import us.hebi.quickbuf.RepeatedMessage;
 
 @Entity(value = "players", useDiscriminator = false)
 @Getter
-public class Player implements Tickable {
+public class Player implements Tickable, Syncable {
     @Id private int uid;
     @Indexed private String accountUid;
     private String name;
@@ -90,6 +92,7 @@ public class Player implements Tickable {
     private int phoneTheme;
     private int chatBubble;
     private int currentBgm;
+    @Setter private int petId;
     private Map<Integer, Integer> curAvatarPaths;
     private PlayerGender gender;
     
@@ -1024,6 +1027,12 @@ public class Player implements Tickable {
         } else {
             this.unlocks.setOwner(this);
         }
+    }
+    
+    // Player sync
+    
+    public void onSync(PlayerSyncScNotify proto) {
+        proto.setBasicInfo(this.toProto());
     }
     
     // Protobuf serialization

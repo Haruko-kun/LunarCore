@@ -7,6 +7,8 @@ import emu.lunarcore.LunarCore;
 import emu.lunarcore.data.GameData;
 import emu.lunarcore.game.avatar.GameAvatar;
 import emu.lunarcore.game.enums.PersonalizeShowType;
+import emu.lunarcore.proto.PlayerSyncScNotifyOuterClass.PlayerSyncScNotify;
+import emu.lunarcore.server.game.Syncable;
 import emu.lunarcore.server.packet.BasePacket;
 import emu.lunarcore.server.packet.send.PacketPlayerSyncScNotify;
 import emu.lunarcore.server.packet.send.PacketUnlockChatBubbleScNotify;
@@ -17,7 +19,7 @@ import lombok.Getter;
 
 @Getter
 @Entity(value = "unlocks", useDiscriminator = false)
-public class PlayerUnlockData {
+public class PlayerUnlockData implements Syncable {
     private transient Player owner;
     
     @Id private int ownerUid;
@@ -25,6 +27,7 @@ public class PlayerUnlockData {
     private IntSet headIcons;
     private IntSet chatBubbles;
     private IntSet phoneThemes;
+    private IntSet pets;
     
     @Deprecated // Morphia only
     public PlayerUnlockData() {}
@@ -85,11 +88,18 @@ public class PlayerUnlockData {
         return this.phoneThemes;
     }
     
+    public IntSet getPets() {
+        if (this.pets == null) {
+            this.pets = new IntOpenHashSet();
+        }
+        return this.pets;
+    }
+    
     public void addHeadIcon(int headIconId) {
         boolean success = this.getHeadIcons().add(headIconId);
         
         if (success && this.getOwner().isLoggedIn()) {
-            this.sendPacket(new PacketPlayerSyncScNotify(getOwner().toBoardData()));
+            this.sendPacket(new PacketPlayerSyncScNotify(this));
             this.save();
         }
     }
@@ -112,9 +122,37 @@ public class PlayerUnlockData {
         }
     }
     
+    public void addPet(int petItemId) {
+        // Get pet excel TODO optimize
+        var excel = GameData.getPetExcelMap().values().stream()
+                .filter(e -> e.getPetItemID() == petItemId)
+                .findFirst()
+                .orElse(null);
+        
+        if (excel == null) {
+            return;
+        }
+        
+        // Add
+        boolean success = this.getPets().add(excel.getPetID());
+        
+        if (success && this.getOwner().isLoggedIn()) {
+            // Pet sync packet TODO
+            this.save();
+        }
+    }
+    
     private void sendPacket(BasePacket packet) {
         this.getOwner().sendPacket(packet);
     }
+    
+    // Player sync
+    
+    public void onSync(PlayerSyncScNotify proto) {
+        proto.setBoardDataSync(this.getOwner().toBoardData());
+    }
+    
+    // Database
 
     public void save() {
         LunarCore.getGameDatabase().save(this);
