@@ -120,7 +120,7 @@ public class ChallengeInstance {
         // Add story battle targets
         if (this.getExcel().getType() == ChallengeType.STORY) {
             // Add base score counter
-            battle.addBattleTarget(1, 10001, this.getTotalScore());
+            battle.addBattleTarget(1, 10002, this.getTotalScore());
             // Add battle targets from story excel
             for (int id : getExcel().getStoryExcel().getBattleTargetID()) {
                 battle.addBattleTarget(5, id, this.getTotalScore());
